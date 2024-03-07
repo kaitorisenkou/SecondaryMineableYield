@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using HarmonyLib;
@@ -17,7 +18,14 @@ namespace SecondaryMineableYield {
             harmony.Patch(
                 AccessTools.Method(typeof(Mineable), "TrySpawnYield", null, null),
                 null,
-                new HarmonyMethod(typeof(SecondaryMineableYield), "Patch_TrySpawnYield", null),
+                new HarmonyMethod(typeof(SecondaryMineableYield), nameof(Patch_TrySpawnYield), null),
+                null,
+                null
+                );
+            harmony.Patch(
+                AccessTools.Method(typeof(Mineable), "PreApplyDamage", null, null),
+                null,
+                new HarmonyMethod(typeof(SecondaryMineableYield), nameof(Patch_PreApplyDamage), null),
                 null,
                 null
                 );
@@ -33,7 +41,7 @@ namespace SecondaryMineableYield {
             float weights = ext.GetWeightSum;
             float rand = Rand.Value * weights;
             SecondaryYieldEntry entry = null;
-            foreach(var i in ext.entries) {
+            foreach (var i in ext.entries) {
                 weights -= i.randomWeight;
                 if (weights < rand) {
                     entry = i;
@@ -56,6 +64,21 @@ namespace SecondaryMineableYield {
                     t.SetForbidden(true, false);
                 }
                 );
+        }
+
+        public static void Patch_PreApplyDamage(Mineable __instance, DamageInfo dinfo, bool absorbed) {
+            if (absorbed || 
+                __instance.def.building.mineableThing!=null||
+                dinfo.Def != DamageDefOf.Mining ||
+                dinfo.Instigator == null ||
+                !(dinfo.Instigator is Pawn)) {
+                return;
+            }
+
+            var ext = __instance.def.GetModExtension<ModExtension_SecondaryMineableYield>();
+            if (ext != null && !ext.entries.NullOrEmpty()) {
+                __instance.Notify_TookMiningDamage(GenMath.RoundRandom(dinfo.Amount), (Pawn)dinfo.Instigator);
+            }
         }
     }
 }
