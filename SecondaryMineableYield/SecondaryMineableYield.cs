@@ -16,7 +16,11 @@ namespace SecondaryMineableYield {
             Log.Message("[SecondaryMineableYield] Now active");
             var harmony = new Harmony("kaitorisenkou.SecondaryMineableYield");
             harmony.Patch(
+#if v15
+                AccessTools.Method(typeof(Mineable), "TrySpawnYield", new Type[] { typeof(Map), typeof(bool), typeof(Pawn) },null),
+#else
                 AccessTools.Method(typeof(Mineable), "TrySpawnYield", null, null),
+#endif
                 null,
                 new HarmonyMethod(typeof(SecondaryMineableYield), nameof(Patch_TrySpawnYield), null),
                 null,
@@ -31,7 +35,11 @@ namespace SecondaryMineableYield {
                 );
             Log.Message("[SecondaryMineableYield] Harmony patch complete!");
         }
+#if v15
+        public static void Patch_TrySpawnYield(Mineable __instance, float ___yieldPct, Map map, Pawn pawn) {
+#else
         public static void Patch_TrySpawnYield(Mineable __instance, float ___yieldPct, Map map, float yieldChance, Pawn pawn) {
+#endif
             var ext = __instance.def.GetModExtension<ModExtension_SecondaryMineableYield>();
             if (ext == null)
                 return;
